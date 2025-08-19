@@ -1,0 +1,31 @@
+MIT License
+
+NetRecon v2.7 - Advanced Network Scanner
+Copyright (c) 2023 voltsparx
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software (NetRecon v2.7) and associated documentation files, to deal
+in the Software for ethical security testing and research purposes only,
+subject to the following conditions:
+
+1. Lawful Use Clause: 
+   - The Software shall only be used on systems with explicit authorization
+   - Any unauthorized scanning or exploitation is expressly prohibited
+
+2. Ethical Restrictions:
+   - Military, surveillance, or offensive cyber operations are forbidden
+   - Commercial use requires written permission from the author
+
+3. Standard MIT Terms:
+   - The above copyright notice and this permission notice shall be included
+     in all copies or substantial portions of the Software
+   - The Software is provided "AS IS", without warranty of any kind
+   - No liability for damages resulting from misuse
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
