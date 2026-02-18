@@ -2,7 +2,7 @@
 
 # NetRecon v2.7 - Advanced Network Scanner
 # Copyright (c) 2023 CyberSecurity Analyst
-# Licensed under MIT (https://github.com/voltsparx/NetRecon/LICENSE.txt)
+# Licensed under MIT (https://github.com/voltsparx/NetRecon/LICENSE)
 
 """
 NetRecon v2.7 - Advanced Network Scanner
