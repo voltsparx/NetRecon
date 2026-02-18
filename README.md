@@ -1,127 +1,330 @@
+# NetRecon v4.7
 
-=======================================
-NetRecon v2.7 - Advanced Network Scanner
-=======================================
+NetRecon is a modular reconnaissance framework for authorized security testing.  
+It supports guided interactive usage for learners and fast flag-based execution for automation.
 
-Author: voltsparx
-Contact: voltsparx@gmail.com
-Repository: https://github.com/voltsparx/NetRecon
-License: MIT
+## Legal Disclaimer
 
-[![Python 3.6+](https://img.shields.io/badge/Python-3.6+-blue.svg)](https://python.org)  
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)  
+Use this tool only on systems you own or have explicit written permission to assess.  
+Unauthorized scanning may violate law and policy. You are responsible for compliant use.
 
-> ⚠️ **Warning**: Only use on authorized systems. Unauthorized scanning is illegal.
+## Ethical Warning
 
-== BANNER ==
- |====================================================|
- |     _   _      _   ____                            |
- |    | \ | | ___| |_|  _ \ ___  ___ ___  _ __        |
- |    |  \| |/ _ \ __| |_) / _ \/ __/ _ \| '_ \       |
- |    | |\  |  __/ |_|  _ <  __/ (_| (_) | | | |      |
- |    |_| \_|\___|\__|_| \_\___|\___\___/|_| |_|      |
- |                                               v2.7 |
- |====================================================|
-    
-    Version: 2.7
-    Author: voltsparx
-    Contact: voltsparx@gmail.com
-    Repository: https://github.com/voltsparx/NetRecon
-    Warning: WARNING: This tool is for authorized security testing and research only!
+- NetRecon is for defensive security testing and learning in authorized environments only.
+- Do not scan public or private infrastructure without explicit approval.
+- Do not use findings for exploitation, disruption, or unauthorized access.
+- Always operate within legal scope, written rules of engagement, and local law.
 
-=== DESCRIPTION ===
-NetRecon is a professional-grade network scanning tool for cybersecurity professionals. 
-It combines multiple scanning techniques with service fingerprinting and OS detection 
-for comprehensive network reconnaissance.
+## Highlights
 
-=== FEATURES ===
-• Multi-mode scanning (SYN, TCP Connect, UDP)
-• Advanced service detection (Nmap integration)
-• OS fingerprinting via TTL analysis
-• Async HTTP banner grabbing
-• Rich console output (with fallback to basic)
-• CIDR notation support for network scanning
-• Threaded implementation for performance
+- Interactive mode with guided prompts and metadata banner
+- Argparse mode with compact nmap-style scan output
+- Single host, CIDR, and multi-target scanning
+- Threaded TCP scanning with retry, timeout, and jitter controls
+- Optional SYN scan mode (Scapy + elevated privileges)
+- Service fingerprinting and OS inference
+- Plugin-based intelligence and misconfiguration checks
+- CVE hint correlation
+- Report export: CLI, JSON, HTML
 
-=== REQUIREMENTS ===
-Core Requirements:
-• Python 3.6+
-• Root/admin privileges for stealth scanning
+## Installation
 
-Optional Dependencies (for enhanced features):
-• scapy (for SYN scans)
-• python-nmap (for service detection)
-• rich (for colored output)
-• aiohttp (for async HTTP checks)
+Requirements:
 
-Install all dependencies with:
-pip install scapy python-nmap rich aiohttp
-            |OR|
+- Python 3.8+
+- `scapy` (for SYN scanning features)
+
+Install:
+
+```bash
 pip install -r requirements.txt
+```
 
-=== USAGE ===
-Basic syntax:
+## Launch Modes
+
+### Interactive Prompt Mode
+
+```bash
+python netrecon.py
+```
+
+Behavior:
+
+- Clears terminal first (Windows + Unix)
+- Shows full banner, version, author, and contact
+- Prompts for profile, plugin usage, and report export
+
+### Argparse Fast Mode
+
+```bash
 python netrecon.py <target> [options]
+```
 
-Options:
-  -p PORTS     Ports to scan (default: 1-1024)
-  -s           Enable stealth scanning (SYN)
-  -sV          Enable service detection
-  -v           Verbose output
+Behavior:
 
-Examples:
-1. Basic TCP scan:
-   python netrecon.py 192.168.1.1
+- Does not clear terminal
+- Shows compact scan header and professional tabular output
+- Ideal for scripts and repeatable workflows
 
-2. Stealth scan with service detection:
-   sudo python netrecon.py 10.0.0.1 -s -sV
+## Core Commands
 
-3. Full port scan on network range:
-   sudo python netrecon.py 192.168.1.0/24 -p 1-65535
+```bash
+python netrecon.py --help
+python netrecon.py --about
+python netrecon.py --launch-modes
+python netrecon.py --list-profiles
+```
 
-=== OUTPUT FORMAT ===
-The tool provides:
-• Open ports with service identification
-• OS detection results
-• Hostname resolution
-• Scan duration statistics
+## Scan Examples
 
-With rich installed, output is formatted in colored tables.
-Without rich, basic text output is provided.
+Quick:
 
-=== WORKFLOW ===
-1. Host discovery (ICMP ping)
-2. Port scanning (selected method)
-3. Service detection (if enabled)
-4. OS fingerprinting
-5. Results presentation
+```bash
+python netrecon.py 192.168.1.10 -p quick
+```
 
-=== ETHICAL WARNING ===
-WARNING: This tool is for AUTHORIZED SECURITY TESTING ONLY.
+Aggressive with plugins + JSON/HTML:
 
-• You must have explicit permission to scan any network
-• Unauthorized scanning is illegal in many jurisdictions
-• The author assumes no liability for misuse of this tool
-• Use only on networks you own or have permission to test
+```bash
+python netrecon.py 10.0.0.0/24 -p aggressive --plugins --json --html
+```
 
-By using this software, you agree to:
-1. Use it only for lawful purposes
-2. Obtain proper authorization before scanning
-3. Not use it to harm or compromise systems
-4. Accept all responsibility for your actions
+Web-focused:
 
-=== DISCLAIMER & ETHICAL WARNING ===
-This tool is provided "AS IS" without warranty of any kind. 
-The author shall not be held responsible for any damages 
-resulting from the use of this software. Use at your own risk.
-By using this software, you agree to only conduct authorized security testing.
+```bash
+python netrecon.py example.com -p web --plugins --html
+```
 
-=== VERSION HISTORY ===
-v2.7 (Current):
-- Added full Scapy/Nmap/Rich integration
-- Improved async HTTP checks
-- Enhanced output formatting
-- Added ethical warnings
+Stealth/SYN:
 
-v1.0:
-- Initial public release
+```bash
+python netrecon.py 192.168.1.10 -p stealth --syn -s
+```
+
+## Usage Cheat Sheet
+
+Basic host scan:
+
+```bash
+python netrecon.py 192.168.1.10 -p quick
+```
+
+CIDR range scan:
+
+```bash
+python netrecon.py 192.168.1.0/24 -p aggressive --plugins
+```
+
+Custom ports:
+
+```bash
+python netrecon.py example.com --ports 22,80,443,8443 --plugins
+```
+
+Full export set:
+
+```bash
+python netrecon.py 10.10.10.0/24 -p vuln --plugins --json --html
+```
+
+## CLI Options
+
+- `target`: IP, hostname, CIDR, or comma-separated hosts
+- `-p, --profile`: `quick | stealth | aggressive | web | vuln`
+- `--ports`: port expression (`22,80,443` or `1-1024`)
+- `--threads`: scanner thread count
+- `--timeout`: socket timeout in seconds
+- `--retries`: retries per probe
+- `--rate-limit`: delay between probes
+- `--plugins`: enable plugins
+- `--json`: save JSON report
+- `--html`: save HTML report
+- `--no-discovery`: skip ping discovery
+- `--syn`: force SYN mode
+- `-s, --stealth`: enable stealth timing strategy
+- `-sV, --services`: enable service fingerprinting
+- `--about`: show banner + metadata
+- `--launch-modes`: show mode guide
+- `--list-profiles`: list profiles
+- `-h, --help`: show help
+
+## Profiles
+
+| Profile | Purpose |
+|---|---|
+| `quick` | Fast top-ports visibility |
+| `stealth` | Lower-noise randomized scan |
+| `aggressive` | Deep recon with plugins and CVE hints |
+| `web` | HTTP/TLS-focused analysis |
+| `vuln` | Vulnerability-oriented recon profile |
+
+## Plugin Set (v4.7)
+
+- `banner_grabber`: captures banners + TLS metadata + outdated version hints
+- `default_creds`: default credential risk mapping with port fallbacks
+- `dir_listing`: directory listing detection across HTTP/HTTPS
+- `dns_enum`: forward/reverse DNS enrichment with IP classification
+- `open_proxy`: multi-method proxy exposure checks
+- `ssl_info`: certificate expiry, TLS version, weak cipher warnings
+- `vuln_headers`: missing security headers, HSTS checks, disclosure hints
+- `weak_ssh`: legacy SSH protocol/version checks
+- `whois_lookup`: WHOIS key field extraction and enrichment
+
+## Plugin Usage and Examples
+
+Plugins are executed together when `--plugins` is enabled.  
+To focus on a specific plugin signal, scan relevant ports/services.
+
+### `banner_grabber`
+
+Purpose:
+
+- Capture banners and TLS metadata for service fingerprint clues.
+
+Example:
+
+```bash
+python netrecon.py target.local --ports 21,22,80,443,8443 --plugins
+```
+
+### `default_creds`
+
+Purpose:
+
+- Flag services commonly exposed with default credentials.
+
+Example:
+
+```bash
+python netrecon.py 192.168.1.50 --ports 21,23,3306,5432,6379 --plugins
+```
+
+### `dir_listing`
+
+Purpose:
+
+- Detect directory listing exposure on HTTP/HTTPS roots.
+
+Example:
+
+```bash
+python netrecon.py web.internal --ports 80,443,8080,8443 --plugins
+```
+
+### `dns_enum`
+
+Purpose:
+
+- Resolve host/IP metadata, aliases, PTR, and IP classification.
+
+Example:
+
+```bash
+python netrecon.py example.com -p quick --plugins
+```
+
+### `open_proxy`
+
+Purpose:
+
+- Check whether proxy-like ports accept unsafe relay behavior.
+
+Example:
+
+```bash
+python netrecon.py proxy.host --ports 3128,8080,8081,8888 --plugins
+```
+
+### `ssl_info`
+
+Purpose:
+
+- Inspect TLS cert expiry, protocol version, and weak ciphers.
+
+Example:
+
+```bash
+python netrecon.py secure.host --ports 443,465,993,995,8443 --plugins
+```
+
+### `vuln_headers`
+
+Purpose:
+
+- Check security headers and web disclosure issues.
+
+Example:
+
+```bash
+python netrecon.py app.host --ports 80,443,8080,8443 --plugins
+```
+
+### `weak_ssh`
+
+Purpose:
+
+- Detect weak/legacy SSH protocol or server version hints.
+
+Example:
+
+```bash
+python netrecon.py 10.0.0.10 --ports 22 --plugins
+```
+
+### `whois_lookup`
+
+Purpose:
+
+- Enrich targets with registrar/expiry/ownership clues where available.
+
+Example:
+
+```bash
+python netrecon.py example.org -p quick --plugins
+```
+
+## Output
+
+Reports are saved in:
+
+- `output/cli/`
+- `output/json/`
+- `output/html/`
+
+Each report includes target metadata, open ports/services, risk classification, plugin findings, CVE hints, and timing.
+
+## Architecture
+
+1. Parse mode/input
+2. Expand targets
+3. Optional host discovery
+4. Scan ports (connect/SYN)
+5. Service/OS inference
+6. Run plugins
+7. Correlate CVEs
+8. Classify risk + render reports
+9. Persist outputs
+
+## Release Validation (v4.7)
+
+Smoke checks run during this release:
+
+```bash
+python -B -c "import netrecon; print('import_ok')"
+python -B netrecon.py --help
+python -B netrecon.py --about
+python -B netrecon.py --list-profiles
+python -B netrecon.py 127.0.0.1 -p quick --ports 80,443,445 --plugins --json --html
+```
+
+## Security
+
+See `SECURITY.md` for responsible disclosure and support policy.
+
+## Conduct
+
+See `CODE_OF_CONDUCT.md`.
+
+## License
+
+MIT. See `LICENSE`.

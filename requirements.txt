@@ -1,13 +1,6 @@
+# NetRecon v4.7 dependency list
+#
+# Most functionality uses the Python standard library.
+# This package is required for SYN half-open scan support.
 
-# Enhanced Scanning Modules
-scapy            # For stealth SYN scans and packet crafting
-python-nmap      # For advanced service/version detection
-
-# Enhanced Output Modules
-rich             # For beautiful console formatting and tables
-
-# Async Modules
-aiohttp          # For fast async HTTP service checks
-
-# Installation command:
-# pip install -r requirements.txt
+scapy>=2.5.0

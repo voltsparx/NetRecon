@@ -1,44 +1,71 @@
 SERVICE_FINGERPRINTS = {
-    21: ("FTP", "File Transfer"),
-    22: ("SSH", "Secure Shell"),
-    23: ("Telnet", "Remote Access"),
-    25: ("SMTP", "Mail Transfer"),
-    53: ("DNS", "Domain Service"),
-    80: ("HTTP", "Web Server"),
-    110: ("POP3", "Mail Retrieval"),
-    119: ("NNTP", "Usenet Service"),
-    123: ("NTP", "Time Sync"),
-    137: ("NetBIOS", "Windows Network"),
-    139: ("SMB", "File Sharing"),
-    143: ("IMAP", "Mail Access"),
-    161: ("SNMP", "Network Mgmt"),
-    389: ("LDAP", "Directory Service"),
-    443: ("HTTPS", "Secure Web"),
-    445: ("SMB", "Windows Sharing"),
-    3306: ("MySQL", "Database"),
-    3389: ("RDP", "Remote Desktop"),
-    5432: ("PostgreSQL", "Database"),
-    6379: ("Redis", "In-Memory DB"),
-    8080: ("HTTP-Alt", "Web Proxy"),
-    8443: ("HTTPS-Alt", "Secure Web"),
-    9200: ("Elasticsearch", "Search Engine"),
-    27017: ("MongoDB", "NoSQL DB"),
+    21: {"name": "FTP", "description": "File transfer service", "risk": "Medium"},
+    22: {"name": "SSH", "description": "Secure shell access", "risk": "Low"},
+    23: {"name": "Telnet", "description": "Remote shell (plaintext)", "risk": "High"},
+    25: {"name": "SMTP", "description": "Mail transfer service", "risk": "Low"},
+    53: {"name": "DNS", "description": "Domain name service", "risk": "Low"},
+    80: {"name": "HTTP", "description": "Web service", "risk": "Low"},
+    110: {"name": "POP3", "description": "Mail retrieval", "risk": "Medium"},
+    111: {"name": "RPCBind", "description": "RPC mapper", "risk": "Medium"},
+    139: {"name": "NetBIOS", "description": "Legacy SMB service", "risk": "Medium"},
+    143: {"name": "IMAP", "description": "Mail access protocol", "risk": "Low"},
+    389: {"name": "LDAP", "description": "Directory service", "risk": "Medium"},
+    443: {"name": "HTTPS", "description": "Secure web service", "risk": "Low"},
+    445: {"name": "SMB", "description": "Windows file sharing", "risk": "High"},
+    3306: {"name": "MySQL", "description": "Database service", "risk": "High"},
+    3389: {"name": "RDP", "description": "Remote desktop", "risk": "High"},
+    5432: {"name": "PostgreSQL", "description": "Database service", "risk": "Medium"},
+    5900: {"name": "VNC", "description": "Remote desktop service", "risk": "High"},
+    6379: {"name": "Redis", "description": "In-memory data store", "risk": "High"},
+    8080: {"name": "HTTP-Alt", "description": "Alternate web service", "risk": "Low"},
+    8443: {"name": "HTTPS-Alt", "description": "Alternate secure web service", "risk": "Low"},
+    9200: {"name": "Elasticsearch", "description": "Search/API service", "risk": "High"},
 }
 
-def identify_service(port, banner=None):
+
+def _from_banner(banner):
+    data = (banner or "").lower()
+    if not data:
+        return None
+    if "openssh" in data:
+        return {"name": "SSH", "description": "OpenSSH service", "risk": "Low", "confidence": "high"}
+    if "nginx" in data:
+        return {"name": "HTTP", "description": "Nginx web server", "risk": "Low", "confidence": "high"}
+    if "apache" in data:
+        return {"name": "HTTP", "description": "Apache web server", "risk": "Low", "confidence": "high"}
+    if "microsoft-iis" in data:
+        return {"name": "HTTP", "description": "Microsoft IIS web server", "risk": "Low", "confidence": "high"}
+    if "redis" in data:
+        return {"name": "Redis", "description": "Redis service", "risk": "High", "confidence": "medium"}
+    if "mysql" in data:
+        return {"name": "MySQL", "description": "MySQL service", "risk": "High", "confidence": "medium"}
+    return None
+
+
+def get_service_info(port, banner=None):
+    by_banner = _from_banner(banner)
+    if by_banner:
+        return by_banner
+
     if port in SERVICE_FINGERPRINTS:
-        name, desc = SERVICE_FINGERPRINTS[port]
-        return f"{name} ({desc})"
+        item = dict(SERVICE_FINGERPRINTS[port])
+        item.setdefault("confidence", "medium")
+        return item
 
-    if banner:
-        banner = banner.lower()
-        if "nginx" in banner:
-            return "Nginx (Web Server)"
-        if "apache" in banner:
-            return "Apache (Web Server)"
-        if "microsoft-iis" in banner:
-            return "IIS (Web Server)"
-        if "ssh" in banner:
-            return "SSH Service"
+    return {
+        "name": "unknown",
+        "description": "Unknown service",
+        "risk": "Low",
+        "confidence": "low",
+    }
 
-    return "unknown"
+
+def identify_service(port, banner=None):
+    item = get_service_info(port, banner=banner)
+    return f"{item['name']} ({item['description']})"
+
+
+def service_name_only(service_label):
+    if not service_label:
+        return "unknown"
+    return service_label.split("(", 1)[0].strip()
