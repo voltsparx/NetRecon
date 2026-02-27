@@ -4,7 +4,7 @@
 
 It supports interactive usage for learners and fast flag-based execution for automation and repeatable security assessments.
 
-**Author**: voltsparx
+**Author**: voltsparx<br>
 **Contact**: voltsparx@gmail.com
 
 ---
