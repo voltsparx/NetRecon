@@ -1,5 +1,5 @@
 TOOL_NAME = "NetRecon"
-TOOL_VERSION = "v4.7"
+TOOL_VERSION = "v4.9"
 TOOL_AUTHOR = "voltsparx"
 TOOL_CONTACT = "voltsparx@gmail.com"
 TOOL_TAGLINE = "Modular network reconnaissance framework for authorized security testing."

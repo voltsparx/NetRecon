@@ -1,4 +1,4 @@
-# NetRecon v4.7
+# NetRecon v4.9
 
 NetRecon is a modular reconnaissance framework for authorized security testing.  
 It supports guided interactive usage for learners and fast flag-based execution for automation.
@@ -20,6 +20,13 @@ Unauthorized scanning may violate law and policy. You are responsible for compli
 - Interactive mode with guided prompts and metadata banner
 - Argparse mode with compact nmap-style scan output
 - Single host, CIDR, and multi-target scanning
+- Hybrid engine stack (threading + parallel + async) for faster multi-host execution
+- Nmap-inspired timing templates (`-T0` to `-T5`) with adaptive RTT timeout tuning
+- Host grouping scheduler for large target sets
+- Target/port exclusion controls (`--exclude`, `--exclude-file`, `--exclude-ports`)
+- Optional host timeout guardrails (`--host-timeout`) for slow or unstable targets
+- Periodic progress ticker (`--stats-every`) for long scans
+- Service probe engine with intensity levels and probe fallback logic
 - Threaded TCP scanning with retry, timeout, and jitter controls
 - Optional SYN scan mode (Scapy + elevated privileges)
 - Service fingerprinting and OS inference
@@ -101,6 +108,12 @@ Stealth/SYN:
 python netrecon.py 192.168.1.10 -p stealth --syn -s
 ```
 
+Privileged root scan (will request sudo password on Unix with `--sudo`):
+
+```bash
+python netrecon.py 10.0.0.0/24 -p root --sudo --json --html
+```
+
 ## Usage Cheat Sheet
 
 Basic host scan:
@@ -127,25 +140,53 @@ Full export set:
 python netrecon.py 10.10.10.0/24 -p vuln --plugins --json --html
 ```
 
+Scoped/excluded scan:
+
+```bash
+python netrecon.py 10.0.0.0/24 -p aggressive --exclude 10.0.0.1,10.0.0.2 --exclude-ports 23,445
+```
+
+Named output set:
+
+```bash
+python netrecon.py 192.168.1.10 -p quick --json --html --save-prefix office_audit
+```
+
 ## CLI Options
 
 - `target`: IP, hostname, CIDR, or comma-separated hosts
-- `-p, --profile`: `quick | stealth | aggressive | web | vuln`
-- `--ports`: port expression (`22,80,443` or `1-1024`)
-- `--threads`: scanner thread count
-- `--timeout`: socket timeout in seconds
-- `--retries`: retries per probe
-- `--rate-limit`: delay between probes
-- `--plugins`: enable plugins
-- `--json`: save JSON report
-- `--html`: save HTML report
-- `--no-discovery`: skip ping discovery
-- `--syn`: force SYN mode
+- `-p, --profile`: `quick | stealth | aggressive | web | vuln | root`
+- `-o, --ports`: port expression (`22,80,443` or `1-1024`)
+- `-t, --threads`: scanner thread count
+- `-w, --host-workers`: concurrent host workers
+- `-g, --host-group-size`: hosts per parallel execution group
+- `-k, --plugin-workers`: plugin worker threads per host
+- `-a, --async-limit`: async enrichment concurrency limit
+- `-T, --timing-template`: timing template (`0-5`)
+- `-i, --service-intensity`: service probe intensity (`0-9`)
+- `-z, --host-timeout`: give up on a host after N seconds
+- `-A, --stats-every`: print periodic progress every N seconds
+- `-O, --timeout`: socket timeout in seconds
+- `-m, --min-rtt-timeout`: minimum adaptive RTT timeout
+- `-M, --max-rtt-timeout`: maximum adaptive RTT timeout
+- `-r, --retries`: retries per probe
+- `-R, --rate-limit`: delay between probes
+- `-q, --exclude-ports`: exclude ports from the selected port set
+- `-E, --exclude`: exclude targets/networks
+- `-e, --exclude-file`: exclude targets/networks listed in file
+- `-P, --plugins`: enable plugins
+- `-j, --json`: save JSON report
+- `-H, --html`: save HTML report
+- `-f, --save-prefix`: custom prefix for saved report files
+- `-n, --no-discovery`: skip ping discovery
+- `-y, --syn`: force SYN mode
+- `-x, --root-scan`: enforce privileged root/admin scan mode
+- `-u, --sudo`: auto relaunch with sudo for root scan
 - `-s, --stealth`: enable stealth timing strategy
-- `-sV, --services`: enable service fingerprinting
-- `--about`: show banner + metadata
-- `--launch-modes`: show mode guide
-- `--list-profiles`: list profiles
+- `-sV, -V, --services`: enable service fingerprinting
+- `-b, --about`: show banner + metadata
+- `-L, --launch-modes`: show mode guide
+- `-l, --list-profiles`: list profiles
 - `-h, --help`: show help
 
 ## Profiles
@@ -157,8 +198,13 @@ python netrecon.py 10.10.10.0/24 -p vuln --plugins --json --html
 | `aggressive` | Deep recon with plugins and CVE hints |
 | `web` | HTTP/TLS-focused analysis |
 | `vuln` | Vulnerability-oriented recon profile |
+| `root` | Privileged raw scan requiring root/admin |
 
-## Plugin Set (v4.7)
+`root` profile notes:
+- On Linux/macOS, use `--sudo` to trigger a sudo password prompt and relaunch.
+- On Windows, run the terminal as Administrator.
+
+## Plugin Set (v4.9)
 
 - `banner_grabber`: captures banners + TLS metadata + outdated version hints
 - `default_creds`: default credential risk mapping with port fallbacks
@@ -292,20 +338,21 @@ Reports are saved in:
 - `output/html/`
 
 Each report includes target metadata, open ports/services, risk classification, plugin findings, CVE hints, and timing.
+Use `--save-prefix <name>` to generate deterministic, labeled report filenames.
 
 ## Architecture
 
-1. Parse mode/input
-2. Expand targets
+1. Parse mode/input and apply exclusion filters
+2. Expand/dedupe targets
 3. Optional host discovery
-4. Scan ports (connect/SYN)
-5. Service/OS inference
-6. Run plugins
-7. Correlate CVEs
+4. Orchestrate host execution with host-group scheduling and hybrid engines
+5. Scan ports (connect/SYN) with adaptive timing template controls and optional host timeout cutoff
+6. Service/OS inference with probe intensity and fallback logic
+7. Run plugins and CVE correlation in parallel
 8. Classify risk + render reports
 9. Persist outputs
 
-## Release Validation (v4.7)
+## Release Validation (v4.9)
 
 Smoke checks run during this release:
 
@@ -314,6 +361,7 @@ python -B -c "import netrecon; print('import_ok')"
 python -B netrecon.py --help
 python -B netrecon.py --about
 python -B netrecon.py --list-profiles
+python -B netrecon.py 127.0.0.1 -p quick -o 80,443 -q 443 -n -A 0.5 -z 2
 python -B netrecon.py 127.0.0.1 -p quick --ports 80,443,445 --plugins --json --html
 ```
 

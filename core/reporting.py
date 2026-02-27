@@ -4,6 +4,14 @@ from .color import Color
 from .config import HIGH_RISK_PORTS
 from .utils import max_severity, severity_rank, utc_now_iso
 
+_BEGINNER_NOTES = {
+    "safe": "No urgent finding. Keep monitoring and patch on schedule.",
+    "low": "Low-risk exposure. Review configuration hygiene and least privilege.",
+    "medium": "Medium-risk findings. Prioritize externally exposed services first.",
+    "high": "High-risk findings. Restrict access and patch as soon as possible.",
+    "critical": "Critical findings. Treat as urgent and remediate immediately.",
+}
+
 
 def _normalize_severity(value):
     text = str(value or "Low").strip().title()
@@ -90,6 +98,10 @@ def build_host_report(raw_result, plugin_findings=None, cve_findings=None, profi
         "duration_s": raw_result.get("duration_s", 0.0),
         "scanned_ports": raw_result.get("scanned_ports", 0),
         "open_ports": raw_result.get("open_ports", []),
+        "port_stats": raw_result.get("port_stats", {}),
+        "timing": raw_result.get("timing", {}),
+        "timing_template": raw_result.get("timing_template", {}),
+        "service_intensity": raw_result.get("service_intensity"),
         "errors": raw_result.get("errors", []),
         "plugin_findings": plugin_findings or {},
         "plugin_issues": plugin_issues,
@@ -102,12 +114,62 @@ def build_scan_summary(host_reports):
     levels = [item.get("risk_level", "Safe") for item in host_reports]
     worst = max(levels, key=severity_rank) if levels else "Safe"
     total_open_ports = sum(len(item.get("open_ports", [])) for item in host_reports)
+    total_closed_ports = sum((item.get("port_stats") or {}).get("closed", 0) for item in host_reports)
+    total_filtered_ports = sum((item.get("port_stats") or {}).get("filtered", 0) for item in host_reports)
+    total_skipped_ports = sum((item.get("port_stats") or {}).get("skipped", 0) for item in host_reports)
+    total_timeouts = sum((item.get("port_stats") or {}).get("timeouts", 0) for item in host_reports)
     return {
         "generated_at": utc_now_iso(),
         "hosts_scanned": len(host_reports),
         "open_ports": total_open_ports,
+        "closed_ports": total_closed_ports,
+        "filtered_ports": total_filtered_ports,
+        "skipped_ports": total_skipped_ports,
+        "timeouts": total_timeouts,
         "worst_risk": worst,
     }
+
+
+def _risk_note(level):
+    return _BEGINNER_NOTES.get(str(level).lower(), _BEGINNER_NOTES["low"])
+
+
+def render_cli_summary(scan_bundle, color=False):
+    def paint(text, palette):
+        if not color:
+            return text
+        return Color.wrap(text, palette)
+
+    summary = scan_bundle.get("summary", {})
+    hosts = scan_bundle.get("hosts", [])
+    worst = str(summary.get("worst_risk", "Safe"))
+    sorted_hosts = sorted(hosts, key=lambda item: severity_rank(item.get("risk_level", "Safe")), reverse=True)
+
+    lines = []
+    lines.append(paint("NetRecon executive summary", f"{Color.BOLD}{Color.BRIGHT_BLUE}"))
+    lines.append(paint(f"Generated: {summary.get('generated_at', utc_now_iso())}", Color.DIM))
+    lines.append(paint(f"Hosts scanned: {summary.get('hosts_scanned', 0)}", Color.CYAN))
+    lines.append(paint(f"Open ports: {summary.get('open_ports', 0)}", Color.CYAN))
+    lines.append(paint(f"Closed ports: {summary.get('closed_ports', 0)}", Color.CYAN))
+    lines.append(paint(f"Filtered ports: {summary.get('filtered_ports', 0)}", Color.CYAN))
+    lines.append(paint(f"Skipped ports: {summary.get('skipped_ports', 0)}", Color.CYAN))
+    lines.append(paint(f"Timeouts: {summary.get('timeouts', 0)}", Color.CYAN))
+    lines.append(paint(f"Worst risk: {worst}", Color.severity(worst)))
+    lines.append(paint(f"Beginner note: {_risk_note(worst)}", Color.DIM))
+
+    if sorted_hosts:
+        lines.append(paint("Priority hosts:", Color.BOLD))
+        for host in sorted_hosts[:3]:
+            target = host.get("target")
+            risk = host.get("risk_level", "Safe")
+            open_count = len(host.get("open_ports", []))
+            lines.append(
+                paint(
+                    f"- {target} risk={risk} open_ports={open_count}",
+                    Color.severity(risk),
+                )
+            )
+    return "\n".join(lines)
 
 
 def render_cli_report(host_report, color=False):
@@ -128,9 +190,35 @@ def render_cli_report(host_report, color=False):
     lines.append(paint(f"Profile: {host_report.get('profile')}", Color.CYAN))
     lines.append(paint(f"OS guess: {host_report['os']}", Color.CYAN))
     lines.append(paint(f"Scanned ports: {host_report['scanned_ports']}", Color.CYAN))
+    lines.append(paint(f"Duration: {host_report.get('duration_s', 0.0)}s", Color.CYAN))
+    port_stats = host_report.get("port_stats") or {}
+    if port_stats:
+        lines.append(
+            paint(
+                "Port states: "
+                f"open={port_stats.get('open', 0)} closed={port_stats.get('closed', 0)} "
+                f"filtered={port_stats.get('filtered', 0)} skipped={port_stats.get('skipped', 0)} "
+                f"timeouts={port_stats.get('timeouts', 0)}",
+                Color.CYAN,
+            )
+        )
+
+    timing_template = host_report.get("timing_template") or {}
+    if timing_template:
+        level = timing_template.get("level", 3)
+        name = timing_template.get("name", "normal")
+        lines.append(paint(f"Timing template: T{level} ({name})", Color.CYAN))
+    if host_report.get("service_intensity") is not None:
+        lines.append(paint(f"Service intensity: {host_report.get('service_intensity')}/9", Color.CYAN))
+
+    timing = host_report.get("timing") or {}
+    timeout_s = timing.get("timeout_s")
+    if timeout_s is not None:
+        lines.append(paint(f"Adaptive timeout: {timeout_s}s", Color.CYAN))
 
     risk = str(host_report["risk_level"])
     lines.append(paint(f"Risk level: {risk}", Color.severity(risk)))
+    lines.append(paint(f"Guidance: {_risk_note(risk)}", Color.DIM))
     lines.append(paint("PORT      STATE   SERVICE        RISK      DESCRIPTION", Color.BOLD))
     lines.append(paint("--------  ------  -------------  --------  -----------------------------", Color.DIM))
 
@@ -211,6 +299,10 @@ def render_html_report(scan_bundle):
   <div class="meta">
     Generated: {html.escape(str(summary.get("generated_at", "")))}<br />
     Hosts scanned: {html.escape(str(summary.get("hosts_scanned", 0)))}<br />
+    Closed ports: {html.escape(str(summary.get("closed_ports", 0)))}<br />
+    Filtered ports: {html.escape(str(summary.get("filtered_ports", 0)))}<br />
+    Skipped ports: {html.escape(str(summary.get("skipped_ports", 0)))}<br />
+    Timeouts: {html.escape(str(summary.get("timeouts", 0)))}<br />
     Worst risk: {html.escape(str(summary.get("worst_risk", "Safe")))}
   </div>
   <table>

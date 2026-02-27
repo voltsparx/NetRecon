@@ -35,6 +35,7 @@ Thumbs.db
 output/cli/*.txt
 output/json/*.json
 output/html/*.html
+temp/
 
 # Keep folder structure
 !output/cli/.gitkeep
